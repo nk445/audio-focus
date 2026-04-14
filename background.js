@@ -74,4 +74,5 @@ async function setupOffscreen() {
 chrome.tabs.onRemoved.addListener((tabId) => {
   capturedTabs.delete(tabId);
   primedTabs.delete(tabId);
+  console.log("background tab no longer being captured/tracked")
 });

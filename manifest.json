@@ -7,7 +7,9 @@
     "offscreen", 
     "tabCapture"
   ],
-  "action": {},
+  "action": {
+    "default_icon": "headphone_logo.png"
+  },
   "background": {
     "service_worker": "background.js"
   }

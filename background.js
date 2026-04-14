@@ -1,4 +1,5 @@
 const primedTabs = new Set();
+const capturedTabs = new Set();
 
 chrome.action.onClicked.addListener((tab) => {
   primedTabs.add(tab.id);
@@ -28,21 +29,25 @@ async function processAudioState() {
     // Step A: Ensure the Offscreen "mixer room" is open
     await setupOffscreen();
 
-    // Step B: Get the Stream ID and tell the room to start capture + duck
-    chrome.tabCapture.getMediaStreamId({ targetTabId: backgroundNoise.id }, (streamId) => {
-      if (chrome.runtime.lastError) {
-        console.error("Capture failed: " + chrome.runtime.lastError.message);
-        return;
+    // IF NOT CAPTURED YET: Start the stream
+      if (!capturedTabs.has(backgroundNoise.id)) {
+        chrome.tabCapture.getMediaStreamId({ targetTabId: backgroundNoise.id }, (streamId) => {
+          if (chrome.runtime.lastError) return;
+          
+          chrome.runtime.sendMessage({ 
+            type: 'START_CAPTURE', 
+            streamId: streamId, 
+            initialVolume: 0.2 
+          });
+          capturedTabs.add(backgroundNoise.id);
+          isDucked = true;
+        });
       }
-      chrome.runtime.sendMessage({ 
-        type: 'START_CAPTURE', 
-        streamId: streamId 
-      });
-      
-      // Step C: Trigger the volume drop
-      chrome.runtime.sendMessage({ type: 'SET_VOLUME', volume: 0.2 });
-      isDucked = true;
-    });
+      // IF ALREADY CAPTURED: Just lower the volume
+      else if (!isDucked) {
+        chrome.runtime.sendMessage({ type: 'SET_VOLUME', volume: 0.2 });
+        isDucked = true;
+      }
 
   } else if (!foregroundNoise && isDucked) {
     // Restore volume if the foreground stops
@@ -64,3 +69,9 @@ async function setupOffscreen() {
     justification: 'Ducking audio via Web Audio API'
   });
 }
+
+// prevent memory leaks, delete tab from primed and captured sets
+chrome.tabs.onRemoved.addListener((tabId) => {
+  capturedTabs.delete(tabId);
+  primedTabs.delete(tabId);
+});

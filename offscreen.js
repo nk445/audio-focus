@@ -13,6 +13,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
 });
 
 async function startAudioProcessing(streamId) {
+  //If a source already exists, stop the old tracks to "unplug" the stream
+  /**
+  if (source && source.mediaStream) {
+    source.mediaStream.getTracks().forEach(track => track.stop());
+  }*/
+
   // 1. Initialize Audio Context if it doesn't exist
   if (!audioCtx) {
     audioCtx = new AudioContext();
@@ -30,7 +36,7 @@ async function startAudioProcessing(streamId) {
 
   // 3. Build the Graph: Source -> Gain (Volume Control) -> Speakers
   source = audioCtx.createMediaStreamSource(stream);
-  gainNode = audioCtx.createGain();
+  if (!gainNode) gainNode = audioCtx.createGain();
   
   source.connect(gainNode);
   gainNode.connect(audioCtx.destination);

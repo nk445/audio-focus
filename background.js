@@ -1,25 +1,18 @@
-let isDucked = false;
+const primedTabs = new Set();
 
-// set up offscreen page to interact with web audio
-async function setupOffscreen() {
-  // Check if an offscreen document already exists
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT']
-  });
+chrome.action.onClicked.addListener((tab) => {
+  primedTabs.add(tab.id);
+  
+  // Visual feedback: Change the icon badge to show it's active
+  chrome.action.setBadgeText({ text: 'ON', tabId: tab.id });
+  chrome.action.setBadgeBackgroundColor({ color: '#4CAF50', tabId: tab.id });
+  
+  console.log(`Tab ${tab.id} is now primed for Auto-Ducking.`);
+})
 
-  if (existingContexts.length > 0) return;
-
-  // Create the offscreen document
-  await chrome.offscreen.createDocument({
-    url: 'offscreen.html',
-    reasons: ['USER_MEDIA'], // Required for audio capture
-    justification: 'Processing tab audio for ducking via Web Audio API'
-  });
-}
-
-// add event listener to detect changes in tab
+// 1. The Watchman (The only listener we need)
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // specifically look for audio changes
+  // We only react if the 'audible' state changes
   if (changeInfo.hasOwnProperty('audible')) {
     processAudioState();
   }
@@ -27,22 +20,47 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 async function processAudioState() {
   const allTabs = await chrome.tabs.query({});
-  
-  // Find if there is a foreground tab playing audio (like a lecture)
   const foregroundNoise = allTabs.find(t => t.active && t.audible);
-  
-  // Find if there is a background tab playing audio (like lofi music)
-  const backgroundNoise = allTabs.find(t => !t.active && t.audible);
+  const backgroundNoise = allTabs.find(t => !t.active && t.audible && primedTabs.has(t.id));
 
   if (foregroundNoise && backgroundNoise) {
-    if (!isDucked) {
-      // Tell the offscreen document: "Turn it down!"
+    console.log("Foreground and background noise detected!");
+    // Step A: Ensure the Offscreen "mixer room" is open
+    await setupOffscreen();
+
+    // Step B: Get the Stream ID and tell the room to start capture + duck
+    chrome.tabCapture.getMediaStreamId({ targetTabId: backgroundNoise.id }, (streamId) => {
+      if (chrome.runtime.lastError) {
+        console.error("Capture failed: " + chrome.runtime.lastError.message);
+        return;
+      }
+      chrome.runtime.sendMessage({ 
+        type: 'START_CAPTURE', 
+        streamId: streamId 
+      });
+      
+      // Step C: Trigger the volume drop
       chrome.runtime.sendMessage({ type: 'SET_VOLUME', volume: 0.2 });
       isDucked = true;
-    }
+    });
+
   } else if (!foregroundNoise && isDucked) {
-    // Tell the offscreen document: "Bring it back up!"
+    // Restore volume if the foreground stops
     chrome.runtime.sendMessage({ type: 'SET_VOLUME', volume: 1.0 });
     isDucked = false;
   }
+}
+
+// Helper function to manage the offscreen document
+async function setupOffscreen() {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT']
+  });
+  if (existingContexts.length > 0) return;
+
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['USER_MEDIA'],
+    justification: 'Ducking audio via Web Audio API'
+  });
 }

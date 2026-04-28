@@ -22,10 +22,8 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 	// create offscreen document so we can use Web Audio API
 	await setupOffscreenDocument('offscreen.html');
 
-	// send audio stream ID to offscreen document to handle ducking
-	chrome.runtime.sendMessage({
-
-	})
+	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
+	chrome.runtime.sendMessage(streamId);
 });
 
 async function handle_badge(tab) {
@@ -50,7 +48,7 @@ async function handle_badge(tab) {
 	})
 }
 
-function setupOffscreenDocument(file_path) {
+async function setupOffscreenDocument(file_path) {
 	// check if offscreen doc exists already
 	const offscreenURL = chrome.runtime.getURL(file_path);
 	const existingContexts = await chrome.runtime.getContexts({
@@ -68,13 +66,15 @@ function setupOffscreenDocument(file_path) {
 	if (creating) {
 		await creating;
 	}
-	// attribute to variable so above block is true and then await
+
+	// attribute to variable so above block evaluates to true and then await
 	creating = chrome.offscreen.createDocument({
 		url: 'offscreen.html',
 		reasons: ['USER_MEDIA'],
-		justifcation: 'Need to duck audio',
+		justification: 'Need to duck audio',
 	});
 	await creating;
+
 	// finish set up
 	creating = null;
 }

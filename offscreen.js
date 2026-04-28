@@ -1,6 +1,11 @@
 const ctx = new AudioContext();
+let streamId;
 
-function setCtx(streamId) {
-	source = output.createMediaStreamSource(streamId);
-	source.connect(ctx.destination);
+function handleMessage(message) {
+	console.log(`this is the message: ${message}`);
 }
+// listen for streamId
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	handleMessage(message);
+	//sendResponse("Got the ID!");
+});

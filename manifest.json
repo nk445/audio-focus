@@ -11,6 +11,6 @@
     "default_icon": "headphone_logo.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "service_worker.js"
   }
 }

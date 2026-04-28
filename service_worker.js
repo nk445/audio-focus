@@ -23,7 +23,9 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 	await setupOffscreenDocument('offscreen.html');
 
 	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
-	chrome.runtime.sendMessage(streamId);
+	chrome.runtime.sendMessage({
+		stream: streamId
+	});
 });
 
 async function handle_badge(tab) {

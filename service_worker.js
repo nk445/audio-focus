@@ -16,10 +16,16 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.action.onClicked.addListener( async (tab) =>  {
 	await handle_badge(tab);
 
+	// get stream ID for audio
+	const streamId = await chrome.tabCapture.getMediaStreamId();
+
 	// create offscreen document so we can use Web Audio API
 	await setupOffscreenDocument('offscreen.html');
 
-	//setCtx(await chrome.tabCapture.getMediaStreamId());
+	// send audio stream ID to offscreen document to handle ducking
+	chrome.runtime.sendMessage({
+
+	})
 });
 
 async function handle_badge(tab) {

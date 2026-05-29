@@ -1,12 +1,13 @@
-// Audio graph: stream -> gain -> output/destination
+// Audio graph: Node(stream) -> gain -> output/destination
 const ctx = new AudioContext();
 const gainNode = ctx.createGain();
 gainNode.connect(ctx.destination);
 let source;
+let backgroundGain;
 
-async function handleMessage(streamId) {
-	// get media stream from stream id and tab it came from
-	mediaStream = await navigator.mediaDevices.getUserMedia({
+async function handleMessage(streamId, layer) {
+	// convert mediaStream from chrome tab into node for audio graph
+	mediaStreamNode = await navigator.mediaDevices.getUserMedia({
 	  audio: {
 	    mandatory: {
 	      chromeMediaSource: "tab",
@@ -14,13 +15,32 @@ async function handleMessage(streamId) {
 	    }
 	  }
 	});
-	// connect to gain and lower volume
-	source = ctx.createMediaStreamSource(mediaStream);
-	source.connect(gainNode);
-	gainNode.gain.value = .2;
+
+	console.log(layer);
+
+	// connect source to its own gain
+	source = ctx.createMediaStreamSource(mediaStreamNode);
+	let localGain = ctx.createGain();
+	source.connect(localGain);
+	localGain.connect(gainNode);
+
+	// set local gain as background audio if appropriate
+	if (layer == "background") {
+		backgroundGain = localGain;
+	}
+	// lower background audio if this is foreground
+	else {
+		backgroundGain.gain.value = .2;
+	}
 }
+
 // listen for streamId
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	handleMessage(message.stream);
+	handleMessage(message.stream, message.layer);
 	//sendResponse("Got the ID!");
 });
+
+// change background tab volume
+/*function changeVolume() {
+
+}*/

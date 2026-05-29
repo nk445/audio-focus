@@ -3,6 +3,7 @@ const ctx = new AudioContext();
 const gainNode = ctx.createGain();
 gainNode.connect(ctx.destination);
 let source;
+let backgroundGain;
 
 async function handleMessage(streamId, layer) {
 	// convert mediaStream from chrome tab into node for audio graph
@@ -17,10 +18,20 @@ async function handleMessage(streamId, layer) {
 
 	console.log(layer);
 
-	// connect to gain and lower volume
+	// connect source to its own gain
 	source = ctx.createMediaStreamSource(mediaStreamNode);
-	source.connect(gainNode);
-	gainNode.gain.value = .2;
+	let localGain = ctx.createGain();
+	source.connect(localGain);
+	localGain.connect(gainNode);
+
+	// set local gain as background audio if appropriate
+	if (layer == "background") {
+		backgroundGain = localGain;
+	}
+	// lower background audio if this is foreground
+	else {
+		backgroundGain.gain.value = .2;
+	}
 }
 
 // listen for streamId

@@ -5,7 +5,7 @@ let backgroundAudio = null;
 let foregroundAudio = null;
 let creating;
 
-//
+// set badge to display OFF initially
 chrome.runtime.onInstalled.addListener(() => {
 	chrome.action.setBadgeText({
 		text: "OFF"
@@ -22,9 +22,21 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 	// create offscreen document so we can use Web Audio API
 	await setupOffscreenDocument('offscreen.html');
 
+	// determine if this is background audio (no other audio playing) or not
+	let layerType;
+	if (!backgroundAudio) {
+		backgroundAudio = streamId;
+		layerType = "background";
+	}
+	else {
+		foregroundAudio = streamId;
+		layerType = "foreground"
+	}
+
 	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
 	chrome.runtime.sendMessage({
-		stream: streamId
+		stream: streamId,
+		layer: layerType
 	});
 });
 
@@ -63,7 +75,6 @@ async function setupOffscreenDocument(file_path) {
 	}
 
 	// create document
-
 	// make sure it is not already being created
 	if (creating) {
 		await creating;

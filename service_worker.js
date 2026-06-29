@@ -16,34 +16,45 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.action.onClicked.addListener( async (tab) =>  {
 	await handle_badge(tab);
 
+	// add listener for updates (start/stop playing)
+	chrome.tabs.onUpdated.addListener(handleTabUpdate);
+
 	// get stream ID for audio
 	const streamId = await chrome.tabCapture.getMediaStreamId();
 
 	// create offscreen document so we can use Web Audio API
 	await setupOffscreenDocument('offscreen.html');
 
-	// determine if this is background audio (no other audio playing) or not
-	let layerType;
+	// determine if this is background audio (no other audio playing) or foreground
+	let layer;
 	if (!backgroundAudio) {
 		backgroundAudio = streamId;
-		layerType = "background";
+		layer = "background";
 	}
 	else {
 		foregroundAudio = streamId;
-		layerType = "foreground"
+		layer = "foreground"
 	}
 
 	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
 	chrome.runtime.sendMessage({
 		stream: streamId,
-		layer: layerType
+		layerType: layer
 	});
 });
 
+// handle change in play status of stream
+function handleTabUpdate(tabId, changeInfo, tab) {
+	console.log(changeInfo.audible);
+}
+
+// handle ON/OFF label for badge on click
 async function handle_badge(tab) {
 	const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
 	let nextState = "";
 	let newColor = '';
+
+	// determine if displaying ON or OFF
 	if (prevState === "OFF") {
 		nextState = "ON";
 		newColor = '#06d6b0';
@@ -52,6 +63,8 @@ async function handle_badge(tab) {
 		nextState = "OFF";
 		newColor = '#ED665B';
 	}
+
+	// apply change
 	await chrome.action.setBadgeText({
 		tabId: tab.id,
 		text: nextState,
@@ -60,8 +73,11 @@ async function handle_badge(tab) {
 		tabId: tab.id,
 		color: newColor
 	})
+
+
 }
 
+// create offscreen document if necessary
 async function setupOffscreenDocument(file_path) {
 	// check if offscreen doc exists already
 	const offscreenURL = chrome.runtime.getURL(file_path);

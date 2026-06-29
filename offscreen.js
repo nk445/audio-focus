@@ -1,4 +1,6 @@
-// Audio graph: Node(stream) -> gain -> output/destination
+// Goal: Generate audio using Web Audio API, which requires offscreen document to execute
+// Audio graph: Node(background stream) -> gain -> output/destination
+
 const ctx = new AudioContext();
 const gainNode = ctx.createGain();
 gainNode.connect(ctx.destination);
@@ -36,7 +38,7 @@ async function handleMessage(streamId, layer) {
 
 // listen for streamId
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	handleMessage(message.stream, message.layer);
+	handleMessage(message.stream, message.layerType);
 	//sendResponse("Got the ID!");
 });
 

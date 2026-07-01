@@ -7,7 +7,28 @@ gainNode.connect(ctx.destination);
 let source;
 let backgroundGain;
 
-async function handleMessage(streamId, layer) {
+async function handleMessage(streamId, layer, messageType) {
+	if (messageType === "capture") {
+		await captureAudio(streamId, layer);
+	}
+
+	else if (messageType == "duck") {
+		duckBackground();
+	}
+
+	else if (messageType == "unDuck") {
+		unDuckBackground();
+	}
+	
+}
+
+// listen for streamId
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	handleMessage(message.stream, message.layerType, message.messageType);
+	//sendResponse("Got the ID!");
+});
+
+async function captureAudio(streamId, layer) {
 	// convert mediaStream from chrome tab into node for audio graph
 	mediaStreamNode = await navigator.mediaDevices.getUserMedia({
 	  audio: {
@@ -32,15 +53,17 @@ async function handleMessage(streamId, layer) {
 	}
 	// lower background audio if this is foreground
 	else {
-		backgroundGain.gain.value = .2;
+		duckBackground();
 	}
 }
 
-// listen for streamId
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	handleMessage(message.stream, message.layerType);
-	//sendResponse("Got the ID!");
-});
+function duckBackground() {
+	backgroundGain.gain.value = .2;
+}
+
+function unDuckBackground() {
+	backgroundGain.gain.value = 1;
+}
 
 // change background tab volume
 /*function changeVolume() {

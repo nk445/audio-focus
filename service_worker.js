@@ -16,7 +16,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.action.onClicked.addListener( async (tab) =>  {
 	await handle_badge(tab);
 
-	// add listener for updates (start/stop playing)
+	// add listener for updates (audio starts/stops playing)
 	chrome.tabs.onUpdated.addListener(handleTabUpdate);
 
 	// get stream ID for audio
@@ -24,6 +24,7 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 
 	// create offscreen document so we can use Web Audio API
 	await setupOffscreenDocument('offscreen.html');
+	console.log("offscreen set up returned");
 
 	// determine if this is background audio (no other audio playing) or foreground
 	let layer;
@@ -35,17 +36,29 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 		foregroundAudio = streamId;
 		layer = "foreground"
 	}
-
+	
 	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
 	chrome.runtime.sendMessage({
 		stream: streamId,
-		layerType: layer
+		layerType: layer,
+		messageType: "capture"
 	});
 });
 
-// handle change in play status of stream
+// handle change in play status of stream by ducking/unducking background audio
 function handleTabUpdate(tabId, changeInfo, tab) {
-	console.log(changeInfo.audible);
+	// if foreground audible/playing, duck background
+	if (changeInfo.audible) {
+		chrome.runtime.sendMessage({
+			messageType: "duck"
+		})
+	}
+
+	else {
+		chrome.runtime.sendMessage({
+			messageType: "unDuck"
+		})
+	}
 }
 
 // handle ON/OFF label for badge on click
@@ -106,4 +119,5 @@ async function setupOffscreenDocument(file_path) {
 
 	// finish set up
 	creating = null;
+	console.log("offscreen set up done");
 }

@@ -5,13 +5,6 @@ let backgroundAudio = null;
 let foregroundAudio = null;
 let creating;
 
-// set badge to display OFF initially
-chrome.runtime.onInstalled.addListener(() => {
-	chrome.action.setBadgeText({
-		text: "OFF"
-	})
-});
-
 // on click, let user know extension is "ON" and capture audio (if there is audio)
 chrome.action.onClicked.addListener( async (tab) =>  {
 	await handle_badge(tab);
@@ -68,13 +61,13 @@ async function handle_badge(tab) {
 	let newColor = '';
 
 	// determine if displaying ON or OFF
-	if (prevState === "OFF") {
-		nextState = "ON";
-		newColor = '#06d6b0';
-	}
-	else {
+	if (prevState === "ON") {
 		nextState = "OFF";
 		newColor = '#ED665B';
+	}
+	else {
+		nextState = "ON";
+		newColor = '#06d6b0';
 	}
 
 	// apply change

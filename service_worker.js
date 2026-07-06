@@ -5,8 +5,21 @@ let backgroundAudio = null;
 let foregroundAudio = null;
 let creating;
 
+const status = Object.freeze({
+	ON: "ON",
+	OFF: "OFF"
+});
+let currStatus = status.OFF
+
+const badgeColor = Object.freeze({
+	GREEN: '#ED665B',
+	RED: '#06d6b0'
+});
+let currColor;
+
 // on click, let user know extension is "ON" and capture audio (if there is audio)
 chrome.action.onClicked.addListener( async (tab) =>  {
+	console.log("badge clicked");
 	await handle_badge(tab);
 
 	// add listener for updates (audio starts/stops playing)
@@ -40,6 +53,7 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 
 // handle change in play status of stream by ducking/unducking background audio
 function handleTabUpdate(tabId, changeInfo, tab) {
+	
 	// if foreground audible/playing, duck background
 	if (changeInfo.audible) {
 		chrome.runtime.sendMessage({
@@ -56,30 +70,26 @@ function handleTabUpdate(tabId, changeInfo, tab) {
 
 // handle ON/OFF label for badge on click
 async function handle_badge(tab) {
-	const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
-	let nextState = "";
-	let newColor = '';
 
-	// determine if displaying ON or OFF
-	if (prevState === "ON") {
-		nextState = "OFF";
-		newColor = '#ED665B';
+	// determine if displaying ON or OFF and switch
+	if (currStatus === status.ON) {
+		currStatus = status.OFF;
+		currColor = badgeColor.RED;
 	}
 	else {
-		nextState = "ON";
-		newColor = '#06d6b0';
+		currStatus = status.ON;
+		currColor = badgeColor.GREEN;
 	}
 
 	// apply change
 	await chrome.action.setBadgeText({
 		tabId: tab.id,
-		text: nextState,
+		text: currStatus,
 	});
 	await chrome.action.setBadgeBackgroundColor({
 		tabId: tab.id,
-		color: newColor
+		color: currColor
 	})
-
 
 }
 

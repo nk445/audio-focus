@@ -25,7 +25,6 @@ async function handleMessage(streamId, layer, messageType) {
 // listen for streamId
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	handleMessage(message.stream, message.layerType, message.messageType);
-	//sendResponse("Got the ID!");
 });
 
 async function captureAudio(streamId, layer) {
@@ -59,6 +58,7 @@ async function captureAudio(streamId, layer) {
 
 function duckBackground() {
 	backgroundGain.gain.value = .2;
+	console.log("ducking background");
 }
 
 function unDuckBackground() {

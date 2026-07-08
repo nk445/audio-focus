@@ -8,11 +8,13 @@ const status = Object.freeze({
 	ON: "ON",
 	OFF: "OFF"
 });
+let currStatus = "OFF";
 
 const badgeColor = Object.freeze({
 	GREEN: '#06d6b0',
 	RED: '#ED665B'
 });
+let currColor;
 
 // on click, let user know extension is "ON" and capture audio (if there is audio)
 chrome.action.onClicked.addListener( async (tab) =>  {
@@ -63,10 +65,10 @@ function handleTabUpdate(tabId, changeInfo, tab) {
 
 // handle ON/OFF label for badge on click
 async function handle_badge(tab) {
-	const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
+	//const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
 
 	// determine if displaying ON or OFF and switch
-	if (prevState === status.ON) {
+	if (currStatus === status.ON) {
 		currStatus = status.OFF;
 		currColor = badgeColor.RED;
 	}

@@ -29,20 +29,14 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 	await setupOffscreenDocument('offscreen.html');
 	console.log("offscreen set up returned");
 
-	// determine if this is background audio (no other audio playing) or foreground
-	let layer;
+	// determine if this is background audio (no other audio playing)
 	if (!backgroundTab) {
 		backgroundTab = tab.id
-		layer = "background";
-	}
-	else {
-		layer = "foreground"
 	}
 	
 	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
 	chrome.runtime.sendMessage({
 		stream: streamId,
-		layerType: layer,
 		messageType: "capture"
 	});
 });

@@ -7,9 +7,9 @@ gainNode.connect(ctx.destination);
 let source;
 let backgroundGain;
 
-async function handleMessage(streamId, layer, messageType) {
+async function handleMessage(streamId, messageType) {
 	if (messageType === "capture") {
-		await captureAudio(streamId, layer);
+		await captureAudio(streamId);
 	}
 
 	else if (messageType == "duck") {
@@ -24,10 +24,10 @@ async function handleMessage(streamId, layer, messageType) {
 
 // listen for streamId
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	handleMessage(message.stream, message.layerType, message.messageType);
+	handleMessage(message.stream, message.messageType);
 });
 
-async function captureAudio(streamId, layer) {
+async function captureAudio(streamId) {
 	// convert mediaStream from chrome tab into node for audio graph
 	mediaStreamNode = await navigator.mediaDevices.getUserMedia({
 	  audio: {
@@ -38,22 +38,11 @@ async function captureAudio(streamId, layer) {
 	  }
 	});
 
-	console.log(layer);
-
 	// connect source to its own gain
 	source = ctx.createMediaStreamSource(mediaStreamNode);
-	let localGain = ctx.createGain();
-	source.connect(localGain);
-	localGain.connect(gainNode);
-
-	// set local gain as background audio if appropriate
-	if (layer == "background") {
-		backgroundGain = localGain;
-	}
-	// lower background audio if this is foreground
-	else {
-		duckBackground();
-	}
+	backgroundGain = ctx.createGain();
+	source.connect(backgroundGain);
+	backgroundGain.connect(gainNode);
 }
 
 function duckBackground() {

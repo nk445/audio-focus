@@ -19,28 +19,31 @@ let currColor;
 // on click, let user know extension is "ON" and capture audio (if there is audio)
 chrome.action.onClicked.addListener( async (tab) =>  {
 	console.log("badge clicked");
-	await handle_badge(tab);
+	await change_status(tab);
 
-	// add listener for updates (audio starts/stops playing)
-	chrome.tabs.onUpdated.addListener(handleTabUpdate);
+	// capture audio if extension has been turned on
+	if (currStatus === 'ON') {
+		// add listener for updates (audio starts/stops playing)
+		chrome.tabs.onUpdated.addListener(handleTabUpdate);
 
-	// get stream ID for audio
-	const streamId = await chrome.tabCapture.getMediaStreamId();
+		// get stream ID for audio
+		const streamId = await chrome.tabCapture.getMediaStreamId();
 
-	// create offscreen document so we can use Web Audio API
-	await setupOffscreenDocument('offscreen.html');
-	console.log("offscreen set up returned");
+		// create offscreen document so we can use Web Audio API
+		await setupOffscreenDocument('offscreen.html');
+		console.log("offscreen set up returned");
 
-	// determine if this is background audio (no other audio playing)
-	if (!backgroundTab) {
-		backgroundTab = tab.id
+		// determine if this is background audio (no other audio playing)
+		if (!backgroundTab) {
+			backgroundTab = tab.id
+		}
+		
+		// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
+		chrome.runtime.sendMessage({
+			stream: streamId,
+			messageType: "capture"
+		});
 	}
-	
-	// send audio stream ID to event listeners (i.e. offscreen document to handle ducking)
-	chrome.runtime.sendMessage({
-		stream: streamId,
-		messageType: "capture"
-	});
 });
 
 // handle change in play status of stream by ducking/unducking background audio
@@ -64,7 +67,7 @@ function handleTabUpdate(tabId, changeInfo, tab) {
 }
 
 // handle ON/OFF label for badge on click
-async function handle_badge(tab) {
+async function change_status(tab) {
 	//const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
 
 	// determine if displaying ON or OFF and switch

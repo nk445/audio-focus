@@ -1,8 +1,7 @@
 // goal : capture audio from background tab (user allows this by clicking extension icon)
 // duck audio when new audio starts playing, unduck when foreground audio stops
 
-let backgroundAudio = null;
-let foregroundAudio = null;
+let backgroundTab = null;
 let creating;
 
 const status = Object.freeze({
@@ -11,8 +10,8 @@ const status = Object.freeze({
 });
 
 const badgeColor = Object.freeze({
-	GREEN: '#ED665B',
-	RED: '#06d6b0'
+	GREEN: '#06d6b0',
+	RED: '#ED665B'
 });
 
 // on click, let user know extension is "ON" and capture audio (if there is audio)
@@ -32,12 +31,11 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 
 	// determine if this is background audio (no other audio playing) or foreground
 	let layer;
-	if (!backgroundAudio) {
-		backgroundAudio = streamId;
+	if (!backgroundTab) {
+		backgroundTab = tab.id
 		layer = "background";
 	}
 	else {
-		foregroundAudio = streamId;
 		layer = "foreground"
 	}
 	
@@ -51,17 +49,17 @@ chrome.action.onClicked.addListener( async (tab) =>  {
 
 // handle change in play status of stream by ducking/unducking background audio
 function handleTabUpdate(tabId, changeInfo, tab) {
-	if (!foregroundAudio) {
-		return;
+	// only modify background audio if audio from another tab starts/stops
+	if (tabId == backgroundTab) {
+		return
 	}
 
-	// if foreground audible/playing, duck background
+	// if foreground is audible/starts, duck background
 	if (changeInfo.audible) {
 		chrome.runtime.sendMessage({
 			messageType: "duck"
 		})
 	}
-
 	else {
 		chrome.runtime.sendMessage({
 			messageType: "unDuck"
@@ -85,11 +83,9 @@ async function handle_badge(tab) {
 
 	// apply change
 	await chrome.action.setBadgeText({
-		tabId: tab.id,
 		text: currStatus,
 	});
 	await chrome.action.setBadgeBackgroundColor({
-		tabId: tab.id,
 		color: currColor
 	})
 
